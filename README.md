@@ -1,3 +1,3 @@
 # Swedish Tech Skill Observatory
 
-Project scaffold for dlt + dbt + Dagster + MLflow + FastAPI + Streamlit.
+Project scaffold for dlt + Dagster + MLflow + FastAPI + Streamlit.

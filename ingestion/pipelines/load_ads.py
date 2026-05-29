@@ -11,10 +11,10 @@ def job_ads():
 
 def run():
     pipeline = dlt.pipeline(
-        pipeline_name="skill_observatory",
-        destination="duckdb",
-        dataset_name="raw",
-    )
+    pipeline_name="skill_observatory",
+    destination="duckdb",
+    dataset_name="main",
+)
 
     info = pipeline.run(
         job_ads(),
