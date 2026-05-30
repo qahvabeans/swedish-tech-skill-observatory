@@ -1,5 +1,5 @@
 import dlt
-from ingestion.sources.arbetsformedlingen import fetch_ads
+from src.skill_observatory.ingestion.sources.arbetsformedlingen import fetch_ads
 
 @dlt.resource(
     name="job_ads",
