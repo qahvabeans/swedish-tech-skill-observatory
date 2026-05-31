@@ -11,6 +11,7 @@ def build_job_skill_lists() -> None:
         """
         select
             id,
+            publication_date,
             headline,
             description__text
         from main.job_ads
@@ -23,7 +24,7 @@ def build_job_skill_lists() -> None:
         + ads["description__text"].fillna("")
     )
 
-    result = ads[["id"]].copy()
+    result = ads[["id", "publication_date"]].copy()
 
     result["skills"] = (
         ads["search_text"]
@@ -49,7 +50,6 @@ def build_job_skill_lists() -> None:
             """
         ).df()
     )
-
 
 if __name__ == "__main__":
     build_job_skill_lists()

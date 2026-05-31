@@ -1,28 +1,30 @@
 from collections.abc import Iterable
+import re
 
 
 SKILLS = [
     "python",
     "sql",
     "aws",
-    "dbt",
+    "azure",
+    "gcp",
     "docker",
     "kubernetes",
     "spark",
     "databricks",
+    "dbt",
     "airflow",
     "dagster",
-    "pandas",
     "git",
-    "fiskar", # just to check if it works
+    "pandas",
+    "power bi",
+    "tableau",
 ]
-
 
 def extract_skills(text: str | None) -> list[str]:
     """
     Return unique skills found in text.
     """
-
     if not text:
         return []
 
@@ -31,7 +33,7 @@ def extract_skills(text: str | None) -> list[str]:
     matches = {
         skill
         for skill in SKILLS
-        if skill in text
+        if re.search(rf"\b{re.escape(skill)}\b", text)
     }
 
     return sorted(matches)

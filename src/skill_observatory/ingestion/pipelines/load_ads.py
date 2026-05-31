@@ -7,14 +7,16 @@ from src.skill_observatory.ingestion.sources.arbetsformedlingen import fetch_ads
 )
 
 def job_ads():
-    yield fetch_ads(limit=10)
+    yield fetch_ads(limit=100)
 
 def run():
     pipeline = dlt.pipeline(
-    pipeline_name="skill_observatory",
-    destination="duckdb",
-    dataset_name="main",
-)
+        pipeline_name="skill_observatory",
+        destination=dlt.destinations.duckdb(
+            credentials="data/warehouse/skill_observatory.duckdb"
+        ),
+        dataset_name="main",
+    )
 
     info = pipeline.run(
         job_ads(),
