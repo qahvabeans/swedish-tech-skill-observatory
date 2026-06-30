@@ -1,0 +1,22 @@
+name: swedish_tech_skill_observatory
+version: "1.0.0"
+config-version: 2
+
+profile: swedish_tech_skill_observatory
+
+model-paths:
+  - dbt/models
+test-paths:
+  - dbt/tests
+clean-targets:
+  - target
+  - dbt_packages
+
+models:
+  swedish_tech_skill_observatory:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: table
+    marts:
+      +materialized: table

@@ -1,3 +1,4 @@
+import argparse
 from pathlib import Path
 from shutil import copyfileobj
 from tempfile import TemporaryDirectory
@@ -9,6 +10,28 @@ import duckdb
 DUCKDB_PATH = "data/warehouse/skill_observatory.duckdb"
 RAW_DIR = Path("data/raw")
 TEMP_DIR = Path("data/temp")
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Load JobTech historical JSONL zip archives into DuckDB.",
+    )
+    parser.add_argument(
+        "--years",
+        type=int,
+        nargs="+",
+        help="Only load these archive years, for example: --years 2024 2025.",
+    )
+    parser.add_argument(
+        "--append",
+        action="store_true",
+        help=(
+            "Keep the existing historical_job_ads table and replace only the "
+            "selected archive rows. Without this flag, the table is rebuilt."
+        ),
+    )
+
+    return parser.parse_args()
 
 
 def _sql_string(value: str) -> str:
@@ -83,6 +106,52 @@ from read_json_auto(
 """
 
 
+def _table_exists(con: duckdb.DuckDBPyConnection, table_name: str) -> bool:
+    return (
+        con.sql(
+            """
+            select count(*)
+            from information_schema.tables
+            where table_schema = current_schema()
+              and table_name = ?
+            """,
+            params=[table_name],
+        ).fetchone()[0]
+        > 0
+    )
+
+
+def _archive_year(zip_path: Path) -> int:
+    return int(zip_path.stem.split(".")[0])
+
+
+def _archive_paths(years: list[int] | None) -> list[Path]:
+    archive_paths = sorted(RAW_DIR.glob("*.jsonl.zip"))
+
+    if years:
+        requested_years = set(years)
+        archive_paths = [
+            path
+            for path in archive_paths
+            if _archive_year(path) in requested_years
+        ]
+        found_years = {
+            _archive_year(path)
+            for path in archive_paths
+        }
+        missing_years = sorted(requested_years - found_years)
+
+        if missing_years:
+            raise FileNotFoundError(
+                f"No historical archives found for years: {missing_years}"
+            )
+
+    if not archive_paths:
+        raise FileNotFoundError(f"No historical archives found in {RAW_DIR}")
+
+    return archive_paths
+
+
 def _print_archive_validation(
     con: duckdb.DuckDBPyConnection,
     source_archive: str,
@@ -114,20 +183,20 @@ def _print_archive_validation(
     )
 
 
-def run() -> None:
-    archive_paths = sorted(RAW_DIR.glob("*.jsonl.zip"))
-
-    if not archive_paths:
-        raise FileNotFoundError(f"No historical archives found in {RAW_DIR}")
-
+def run(
+    years: list[int] | None = None,
+    append: bool = False,
+) -> None:
+    archive_paths = _archive_paths(years)
     TEMP_DIR.mkdir(parents=True, exist_ok=True)
     con = duckdb.connect(DUCKDB_PATH)
+    table_exists = _table_exists(con, "historical_job_ads")
 
     with TemporaryDirectory(dir=TEMP_DIR) as temp_dir:
         extraction_dir = Path(temp_dir)
 
         for index, zip_path in enumerate(archive_paths):
-            source_year = int(zip_path.stem.split(".")[0])
+            source_year = _archive_year(zip_path)
             source_archive = zip_path.name
             extracted_path = _extract_archive(zip_path, extraction_dir)
             select_sql = _historical_ads_select(
@@ -138,14 +207,32 @@ def run() -> None:
 
             print(f"\n=== Loading {source_archive} ===")
 
-            if index == 0:
+            should_create_table = (
+                index == 0
+                and (
+                    not append
+                    or not table_exists
+                )
+            )
+
+            if should_create_table:
                 con.sql(
                     f"""
                     create or replace table historical_job_ads as
                     {select_sql}
                     """
                 )
+                table_exists = True
             else:
+                if append:
+                    con.sql(
+                        """
+                        delete from historical_job_ads
+                        where source_archive = ?
+                        """,
+                        params=[source_archive],
+                    )
+
                 con.sql(
                     f"""
                     insert into historical_job_ads
@@ -179,4 +266,8 @@ def run() -> None:
 
 
 if __name__ == "__main__":
-    run()
+    args = _parse_args()
+    run(
+        years=args.years,
+        append=args.append,
+    )

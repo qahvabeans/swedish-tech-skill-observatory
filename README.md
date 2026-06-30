@@ -2,9 +2,10 @@
 
 A local analytics project for tracking technology skill demand in Swedish job ads.
 
-The project currently uses JobTech job ad data, DuckDB, dlt, pandas, and Streamlit.
-Historical data is loaded from local yearly JSONL zip archives, transformed into
-skill mention tables, aggregated by month, and shown in a Streamlit dashboard.
+The project currently uses JobTech job ad data, DuckDB, dlt, pandas, dbt, and
+Streamlit. Historical data is loaded from local yearly JSONL zip archives,
+transformed into skill mention tables, modeled with dbt, and shown in a
+Streamlit dashboard.
 
 ## Current Pipeline
 
@@ -16,9 +17,9 @@ skill mention tables, aggregated by month, and shown in a Streamlit dashboard.
    reference and comparison.
 5. Extract historical regex-based tech skills into `historical_regex_skills`.
 6. Build regex QA tables for manual review of matched terms and example ads.
-7. Combine historical sources into `all_historical_job_skills` for lineage.
-8. Aggregate regex-primary monthly skill counts into `monthly_skill_counts`.
-9. Explore trends in the Streamlit dashboard.
+7. Build dbt models for lineage, regex-primary monthly counts, and dashboard
+   trend marts.
+8. Explore trends in the Streamlit dashboard.
 
 ## Data Layout
 
@@ -44,6 +45,29 @@ python -m skill_observatory.transformations.build_historical_regex_skills
 python -m skill_observatory.transformations.build_historical_regex_skill_qa
 python -m skill_observatory.transformations.build_monthly_skill_counts
 streamlit run src/skill_observatory/dashboard/Home.py
+```
+
+To batch-load selected archive years without rebuilding everything:
+
+```powershell
+python -m skill_observatory.ingestion.pipelines.load_historical_ads --years 2025
+python -m skill_observatory.ingestion.pipelines.load_historical_ads --append --years 2024 2025
+```
+
+Without `--append`, the selected archives rebuild `historical_job_ads`. With
+`--append`, the selected archive rows are replaced in the existing table.
+
+To build and test the dbt models after Python ingestion and regex extraction:
+
+```powershell
+dbt build --profiles-dir .
+```
+
+The optional dbt QA summary model expects `historical_regex_skill_matches` to
+exist. Enable it after running the Python QA step:
+
+```powershell
+dbt build --profiles-dir . --vars "{include_regex_qa: true}"
 ```
 
 ## Docs

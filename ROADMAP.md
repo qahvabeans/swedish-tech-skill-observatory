@@ -27,13 +27,15 @@ Status: in progress
 
 ## Phase 2.5: Data Quality and Contracts
 
-Status: planned
+Status: in progress
 
 - Validate required warehouse tables.
 - Validate required columns and basic types.
 - Check for null `id`, null `publication_month`, and impossible date ranges.
 - Track row counts by source archive and skill source.
 - Produce simple validation reports for each pipeline run.
+- Use dbt models and tests for downstream marts while keeping Python ingestion
+  and regex extraction.
 
 ## Phase 3: Enhance the Dashboard
 

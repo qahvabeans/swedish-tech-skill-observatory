@@ -2,7 +2,8 @@
 
 The Swedish Tech Skill Observatory is currently a local-first analytics stack.
 The system ingests Swedish job ads, stores them in DuckDB, extracts skill
-mentions, aggregates monthly trends, and exposes the results in Streamlit.
+mentions with Python, models dashboard-ready tables with dbt, and exposes the
+results in Streamlit.
 
 ## Components
 
@@ -27,7 +28,8 @@ loads the JSONL records with DuckDB, and creates a combined
 - `source_archive` and `source_year`
 
 After each archive is loaded, the ingestion step prints row counts, distinct ad
-counts, and date ranges.
+counts, and date ranges. The loader supports selected-year batches with
+`--years` and idempotent archive replacement with `--append`.
 
 ### Transformations
 
@@ -48,10 +50,22 @@ aliases into canonical labels such as `python`, `power_bi`, `snowflake`, and
 `src/skill_observatory/transformations/build_historical_regex_skill_qa.py`
 creates QA tables with matched terms and sample ads for manual review.
 
-`src/skill_observatory/transformations/build_monthly_skill_counts.py` keeps a
-combined `all_historical_job_skills` table for lineage and comparison, but the
-dashboard-facing `monthly_skill_counts` table is regex-primary. It is aggregated
-from `historical_regex_skills` with one row per `publication_month` and `skill`.
+### dbt Models
+
+The hybrid modeling layer lives under `dbt/` and targets the same DuckDB
+warehouse via the repository-local `profiles.yml`.
+
+Python remains responsible for ingestion and regex extraction. dbt is
+responsible for downstream modeling, tests, and dashboard marts:
+
+- `stg_historical_job_ads`: cleaned historical ad staging view.
+- `int_all_historical_job_skills`: AMS plus regex lineage/comparison table.
+- `int_regex_skill_qa_summary`: dbt-built QA summary from regex match rows.
+- `monthly_skill_counts`: regex-primary monthly dashboard aggregate.
+- `mart_dashboard_skill_trends`: monthly mentions plus share of ads.
+
+The legacy Python `build_monthly_skill_counts.py` remains as a lightweight
+fallback, but dbt is the preferred modeling path for dashboard-ready tables.
 
 ### Dashboard
 
@@ -83,16 +97,19 @@ historical_job_ads
         +--> historical_job_skills       -- AMS taxonomy skills
         |           |
         |           v
-        |   all_historical_job_skills    -- lineage and source comparison
+        |   int_all_historical_job_skills -- dbt lineage and source comparison
         |
         +--> historical_regex_skills     -- project regex skills
                     |
-                    +--> all_historical_job_skills
+                    +--> int_all_historical_job_skills
                     |
                     +--> historical_regex_skill_* -- QA summary and samples
                     |
                     v
-        monthly_skill_counts            -- regex-primary dashboard aggregate
+        monthly_skill_counts            -- dbt regex-primary dashboard aggregate
+                    |
+                    v
+        mart_dashboard_skill_trends      -- normalized dashboard mart
                     |
                     v
         Streamlit dashboard
@@ -117,6 +134,7 @@ job_skills
 
 - Historical ingestion is local and can require substantial disk space while
   archives are extracted.
-- Regex skill coverage is intentionally small and should be expanded.
+- Regex skill coverage should continue to be expanded and reviewed with QA
+  samples.
 - Dashboard filtering and comparisons are still minimal.
-- FastAPI, Dagster, Docker, tests, and MLflow are not yet implemented.
+- FastAPI, Dagster, Docker, and MLflow are not yet implemented.

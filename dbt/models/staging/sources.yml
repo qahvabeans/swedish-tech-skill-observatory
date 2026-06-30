@@ -1,0 +1,48 @@
+version: 2
+
+sources:
+  - name: warehouse
+    schema: main
+    tables:
+      - name: historical_job_ads
+        description: Historical JobTech job ads loaded by the Python ingestion step.
+        columns:
+          - name: id
+            tests:
+              - not_null
+          - name: publication_month
+            tests:
+              - not_null
+
+      - name: historical_job_skills
+        description: AMS-provided skill labels retained as secondary reference data.
+        columns:
+          - name: id
+            tests:
+              - not_null
+          - name: skill_source
+            tests:
+              - accepted_values:
+                  arguments:
+                    values: ["ams"]
+
+      - name: historical_regex_skills
+        description: Regex-primary technology skill mentions produced by Python.
+        columns:
+          - name: id
+            tests:
+              - not_null
+          - name: publication_month
+            tests:
+              - not_null
+          - name: skill
+            tests:
+              - not_null
+          - name: skill_source
+            tests:
+              - accepted_values:
+                  arguments:
+                    values: ["regex"]
+
+      - name: historical_regex_skill_matches
+        description: Optional regex match-level QA rows built by Python.

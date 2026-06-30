@@ -1,0 +1,8 @@
+swedish_tech_skill_observatory:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: data/warehouse/skill_observatory.duckdb
+      schema: main
+      threads: 4

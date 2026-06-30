@@ -1,0 +1,34 @@
+version: 2
+
+models:
+  - name: monthly_skill_counts
+    description: Regex-primary monthly technology skill mentions for dashboard use.
+    columns:
+      - name: publication_month
+        tests:
+          - not_null
+      - name: skill
+        tests:
+          - not_null
+      - name: mentions
+        tests:
+          - not_null
+
+  - name: mart_dashboard_skill_trends
+    description: Dashboard-ready skill trends with raw mentions and share of ads.
+    columns:
+      - name: publication_month
+        tests:
+          - not_null
+      - name: skill
+        tests:
+          - not_null
+      - name: mentions
+        tests:
+          - not_null
+      - name: ads
+        tests:
+          - not_null
+      - name: share_of_ads
+        tests:
+          - not_null
