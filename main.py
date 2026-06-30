@@ -1,5 +1,4 @@
 import subprocess
-import sys
 
 from skill_observatory.ingestion.pipelines.load_ads import run as load_ads
 from skill_observatory.ingestion.pipelines.load_historical_ads import run as load_historical_ads
@@ -14,6 +13,14 @@ from skill_observatory.transformations.build_job_skills import (
 
 from skill_observatory.transformations.build_historical_job_skills import (
     build_historical_job_skills,
+)
+
+from skill_observatory.transformations.build_historical_regex_skills import (
+    build_historical_regex_skills,
+)
+
+from skill_observatory.transformations.build_monthly_skill_counts import (
+    build_monthly_skill_counts,
 )
 
 
@@ -33,6 +40,12 @@ def main():
 
     print("=== Building historical job skills ===")
     build_historical_job_skills()
+
+    print("=== Building historical regex skills ===")
+    build_historical_regex_skills()
+
+    print("=== Building monthly skill counts ===")
+    build_monthly_skill_counts()
 
     print("=== Starting dashboard ===")
 
