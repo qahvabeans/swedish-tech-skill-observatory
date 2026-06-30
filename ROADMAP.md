@@ -14,7 +14,7 @@ Status: in progress
 
 ## Phase 2: Improve Skill Extraction
 
-Status: planned
+Status: in progress
 
 - Expand the regex-based skill taxonomy.
 - Add aliases and normalization, for example `Power BI` and `powerbi` to
@@ -22,6 +22,8 @@ Status: planned
 - Improve Swedish and English term coverage.
 - Add quality assurance for false positives and missing skills.
 - Add review queries for regex source overlap and sample matched job ads.
+- Treat AMS skills as a secondary comparison source, not the primary signal for
+  technology trend analysis.
 
 ## Phase 2.5: Data Quality and Contracts
 

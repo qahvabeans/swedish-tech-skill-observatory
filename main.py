@@ -19,6 +19,10 @@ from skill_observatory.transformations.build_historical_regex_skills import (
     build_historical_regex_skills,
 )
 
+from skill_observatory.transformations.build_historical_regex_skill_qa import (
+    build_historical_regex_skill_qa,
+)
+
 from skill_observatory.transformations.build_monthly_skill_counts import (
     build_monthly_skill_counts,
 )
@@ -43,6 +47,9 @@ def main():
 
     print("=== Building historical regex skills ===")
     build_historical_regex_skills()
+
+    print("=== Building historical regex skill QA ===")
+    build_historical_regex_skill_qa()
 
     print("=== Building monthly skill counts ===")
     build_monthly_skill_counts()

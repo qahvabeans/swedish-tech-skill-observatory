@@ -12,11 +12,13 @@ skill mention tables, aggregated by month, and shown in a Streamlit dashboard.
 2. Load all local historical archives from `data/raw/*.jsonl.zip` into
    `historical_job_ads`.
 3. Extract live regex skill lists into `job_skill_lists` and `job_skills`.
-4. Extract historical AMS-provided skills into `historical_job_skills`.
+4. Extract historical AMS-provided skills into `historical_job_skills` for
+   reference and comparison.
 5. Extract historical regex-based tech skills into `historical_regex_skills`.
-6. Combine historical sources into `all_historical_job_skills`.
-7. Aggregate monthly skill counts into `monthly_skill_counts`.
-8. Explore trends in the Streamlit dashboard.
+6. Build regex QA tables for manual review of matched terms and example ads.
+7. Combine historical sources into `all_historical_job_skills` for lineage.
+8. Aggregate regex-primary monthly skill counts into `monthly_skill_counts`.
+9. Explore trends in the Streamlit dashboard.
 
 ## Data Layout
 
@@ -39,6 +41,7 @@ To run individual steps:
 python -m skill_observatory.ingestion.pipelines.load_historical_ads
 python -m skill_observatory.transformations.build_historical_job_skills
 python -m skill_observatory.transformations.build_historical_regex_skills
+python -m skill_observatory.transformations.build_historical_regex_skill_qa
 python -m skill_observatory.transformations.build_monthly_skill_counts
 streamlit run src/skill_observatory/dashboard/Home.py
 ```

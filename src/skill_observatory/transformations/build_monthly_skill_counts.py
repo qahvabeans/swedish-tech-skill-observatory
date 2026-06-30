@@ -5,7 +5,7 @@ DUCKDB_PATH = "data/warehouse/skill_observatory.duckdb"
 
 
 def build_monthly_skill_counts() -> None:
-    """Build combined historical skill table and monthly aggregates.
+    """Build historical skill source tables and regex-primary monthly aggregates.
 
     Required input tables:
         historical_job_skills      -- AMS-provided skills
@@ -15,8 +15,10 @@ def build_monthly_skill_counts() -> None:
         all_historical_job_skills
         monthly_skill_counts
 
-    monthly_skill_counts uses count(distinct id) so the same job ad is not
-    counted twice for the same skill if multiple sources produce duplicates.
+    monthly_skill_counts is intentionally based on historical_regex_skills only.
+    AMS skills are retained in all_historical_job_skills for comparison and QA,
+    but the dashboard-facing trend table uses the project regex taxonomy as the
+    primary source.
     """
 
     con = duckdb.connect(DUCKDB_PATH)
@@ -51,7 +53,7 @@ def build_monthly_skill_counts() -> None:
             publication_month,
             skill,
             count(distinct id) as mentions
-        from all_historical_job_skills
+        from historical_regex_skills
         group by 1, 2
         """
     )
@@ -82,7 +84,7 @@ def build_monthly_skill_counts() -> None:
         ).df()
     )
 
-    print("\n=== top skills overall ===")
+    print("\n=== top regex skills overall ===")
     print(
         con.sql(
             """

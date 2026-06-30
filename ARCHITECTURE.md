@@ -31,10 +31,12 @@ counts, and date ranges.
 
 ### Transformations
 
-Skill extraction has two historical sources:
+Skill extraction has two historical sources, but the regex source is the
+primary analytical signal:
 
 - `historical_job_skills`: AMS-provided structured skill labels from historical
-  job ads.
+  job ads. This source is kept for reference and comparison, but it is too noisy
+  and broad to drive the main technology trend dashboard.
 - `historical_regex_skills`: project-specific technology terms extracted from
   headline and description text.
 
@@ -43,11 +45,13 @@ The shared regex taxonomy lives in
 aliases into canonical labels such as `python`, `power_bi`, `snowflake`, and
 `llm`.
 
-`src/skill_observatory/transformations/build_monthly_skill_counts.py` combines
-AMS and regex rows into `all_historical_job_skills`, then aggregates
-`monthly_skill_counts` with one row per `publication_month` and `skill`.
-Mentions are counted as `count(distinct id)` so the same ad is not counted twice
-for the same skill in the aggregate.
+`src/skill_observatory/transformations/build_historical_regex_skill_qa.py`
+creates QA tables with matched terms and sample ads for manual review.
+
+`src/skill_observatory/transformations/build_monthly_skill_counts.py` keeps a
+combined `all_historical_job_skills` table for lineage and comparison, but the
+dashboard-facing `monthly_skill_counts` table is regex-primary. It is aggregated
+from `historical_regex_skills` with one row per `publication_month` and `skill`.
 
 ### Dashboard
 
@@ -77,14 +81,18 @@ data/raw/*.jsonl.zip
 historical_job_ads
         |
         +--> historical_job_skills       -- AMS taxonomy skills
+        |           |
+        |           v
+        |   all_historical_job_skills    -- lineage and source comparison
         |
         +--> historical_regex_skills     -- project regex skills
                     |
-                    v
-        all_historical_job_skills
+                    +--> all_historical_job_skills
+                    |
+                    +--> historical_regex_skill_* -- QA summary and samples
                     |
                     v
-        monthly_skill_counts
+        monthly_skill_counts            -- regex-primary dashboard aggregate
                     |
                     v
         Streamlit dashboard
