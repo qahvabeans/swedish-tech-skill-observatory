@@ -1,5 +1,4 @@
 import duckdb
-import pandas as pd
 
 from skill_observatory.transformations.skill_extraction import extract_skills
 
