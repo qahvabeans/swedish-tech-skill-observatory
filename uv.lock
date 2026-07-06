@@ -1648,7 +1648,7 @@ wheels = [
 [[package]]
 name = "swedish-tech-skill-observatory"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "dbt-duckdb" },
     { name = "dlt", extra = ["duckdb"] },
