@@ -68,6 +68,17 @@ def _historical_ads_select(
 ) -> str:
     json_path = _sql_string(extracted_path.as_posix())
     archive = _sql_string(source_archive)
+    occupation_label = "occupation.label" if source_year == 2022 else "occupation[1].label"
+    occupation_group_label = (
+        "occupation_group.label"
+        if source_year == 2022
+        else "occupation_group[1].label"
+    )
+    occupation_field_label = (
+        "occupation_field.label"
+        if source_year == 2022
+        else "occupation_field[1].label"
+    )
 
     return f"""
 select
@@ -84,15 +95,31 @@ select
 
     description.text as description_text,
 
-    occupation[1].label as occupation,
+    {occupation_label} as occupation,
 
-    occupation_group[1].label as occupation_group,
+    {occupation_group_label} as occupation_group,
 
-    occupation_field[1].label as occupation_field,
+    {occupation_field_label} as occupation_field,
 
     must_have.skills as must_have_skills,
 
     nice_to_have.skills as nice_to_have_skills,
+
+    workplace_address.municipality::varchar as municipality,
+
+    workplace_address.municipality_code::varchar as municipality_code,
+
+    workplace_address.region::varchar as region,
+
+    workplace_address.region_code::varchar as region_code,
+
+    workplace_address.postcode::varchar as postcode,
+
+    workplace_address.city::varchar as city,
+
+    workplace_address.coordinates[1]::double as longitude,
+
+    workplace_address.coordinates[2]::double as latitude,
 
     '{archive}' as source_archive,
 
