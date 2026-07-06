@@ -1,95 +1,66 @@
-import duckdb
+from time import perf_counter
 
-from skill_observatory.transformations.skill_extraction import extract_skill_matches
+import duckdb
 
 
 DUCKDB_PATH = "data/warehouse/skill_observatory.duckdb"
 SAMPLES_PER_SKILL = 20
 
 
+def _table_exists(con: duckdb.DuckDBPyConnection, table_name: str) -> bool:
+    return (
+        con.sql(
+            """
+            select count(*)
+            from information_schema.tables
+            where table_schema = current_schema()
+              and table_name = ?
+            """,
+            params=[table_name],
+        ).fetchone()[0]
+        > 0
+    )
+
+
+def _print_elapsed(step: str, started_at: float) -> None:
+    elapsed = perf_counter() - started_at
+    print(f"{step} finished in {elapsed:,.1f}s")
+
+
 def build_historical_regex_skill_qa() -> None:
     """Build regex extraction QA tables for manual skill review.
 
     Input table:
-        historical_job_ads
+        historical_regex_skill_matches
 
     Output tables:
-        historical_regex_skill_matches
         historical_regex_skill_qa_summary
         historical_regex_skill_samples
     """
 
+    started_at = perf_counter()
     con = duckdb.connect(DUCKDB_PATH)
 
-    ads = con.sql(
-        """
-        select
-            id,
-            publication_month,
-            headline,
-            description_text,
-            coalesce(headline, '') || ' ' || coalesce(description_text, '') as search_text
-        from historical_job_ads
-        """
-    ).df()
+    if not _table_exists(con, "historical_regex_skill_matches"):
+        raise RuntimeError(
+            "historical_regex_skill_matches does not exist. "
+            "Run build_historical_regex_skills first."
+        )
 
-    ads["matches"] = ads["search_text"].apply(extract_skill_matches)
+    match_count = con.sql(
+        """
+        select count(*)
+        from historical_regex_skill_matches
+        """
+    ).fetchone()[0]
 
-    matches = (
-        ads[
-            [
-                "id",
-                "publication_month",
-                "headline",
-                "description_text",
-                "matches",
-            ]
-        ]
-        .explode("matches")
-        .dropna(subset=["matches"])
+    print(
+        "=== Building regex skill QA ===\n"
+        f"Using {match_count:,} rows from historical_regex_skill_matches"
     )
 
-    if matches.empty:
-        con.sql(
-            """
-            create or replace table historical_regex_skill_matches (
-                id varchar,
-                publication_month timestamp,
-                skill varchar,
-                matched_text varchar,
-                headline varchar,
-                description_snippet varchar
-            )
-            """
-        )
-    else:
-        matches["skill"] = matches["matches"].apply(lambda match: match["skill"])
-        matches["matched_text"] = matches["matches"].apply(
-            lambda match: match["matched_text"]
-        )
-        matches["description_snippet"] = (
-            matches["description_text"]
-            .fillna("")
-            .str.replace(r"\s+", " ", regex=True)
-            .str.slice(0, 400)
-        )
-
-        con.register("historical_regex_skill_matches_df", matches)
-
-        con.sql(
-            """
-            create or replace table historical_regex_skill_matches as
-            select
-                id,
-                publication_month,
-                skill,
-                matched_text,
-                headline,
-                description_snippet
-            from historical_regex_skill_matches_df
-            """
-        )
-
+    step_started_at = perf_counter()
+    print("Step 1/3: creating historical_regex_skill_qa_summary")
     con.sql(
         """
         create or replace table historical_regex_skill_qa_summary as
@@ -103,7 +74,10 @@ def build_historical_regex_skill_qa() -> None:
         order by ads desc
         """
     )
+    _print_elapsed("Step 1/3", step_started_at)
 
+    step_started_at = perf_counter()
+    print("Step 2/3: creating historical_regex_skill_samples")
     con.sql(
         f"""
         create or replace table historical_regex_skill_samples as
@@ -132,8 +106,10 @@ def build_historical_regex_skill_qa() -> None:
         order by skill, sample_rank
         """
     )
+    _print_elapsed("Step 2/3", step_started_at)
 
-    print("\n=== regex skill QA summary ===")
+    step_started_at = perf_counter()
+    print("Step 3/3: printing regex skill QA summary")
     print(
         con.sql(
             """
@@ -143,6 +119,8 @@ def build_historical_regex_skill_qa() -> None:
             """
         ).df()
     )
+    _print_elapsed("Step 3/3", step_started_at)
+    _print_elapsed("regex skill QA build", started_at)
 
 
 if __name__ == "__main__":
