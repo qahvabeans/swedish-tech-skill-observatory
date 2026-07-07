@@ -24,6 +24,32 @@ def load_skill_trends() -> pd.DataFrame:
     ).df()
 
 
+@st.cache_data(show_spinner=False)
+def load_skill_geography() -> pd.DataFrame:
+    con = duckdb.connect(DB_PATH, read_only=True)
+
+    return con.sql(
+        """
+        select
+            publication_month,
+            skill,
+            municipality,
+            municipality_code,
+            region,
+            region_code,
+            longitude,
+            latitude,
+            mentions,
+            ads,
+            share_of_ads
+        from mart_skill_geography
+        where longitude is not null
+          and latitude is not null
+        order by publication_month, skill, municipality
+        """
+    ).df()
+
+
 def growth_table(
     data: pd.DataFrame,
     metric: str,
@@ -55,12 +81,16 @@ def growth_table(
 st.title("Historical Skill Trends")
 
 trends = load_skill_trends()
+geography = load_skill_geography()
 
 if trends.empty:
     st.warning("No skill trends are available. Run regex extraction and dbt first.")
     st.stop()
 
 trends["publication_month"] = pd.to_datetime(trends["publication_month"])
+if not geography.empty:
+    geography["publication_month"] = pd.to_datetime(geography["publication_month"])
+
 available_months = sorted(trends["publication_month"].dt.date.unique())
 skill_totals = (
     trends.groupby("skill", as_index=False)["mentions"]
@@ -126,11 +156,12 @@ col2.metric("Months", f"{filtered['publication_month'].nunique():,}")
 col3.metric("Ads latest month", f"{latest_ads:,}")
 col4.metric("Top latest skill", str(top_latest["skill"]))
 
-tab_trends, tab_top, tab_growth, tab_table = st.tabs(
+tab_trends, tab_top, tab_growth, tab_geography, tab_table = st.tabs(
     [
         "Trends",
         "Top N",
         "Growth",
+        "Geography",
         "Table",
     ]
 )
@@ -190,6 +221,65 @@ with tab_growth:
     with col_down:
         st.subheader("Fastest declining")
         st.dataframe(declining, use_container_width=True)
+
+with tab_geography:
+    if geography.empty:
+        st.info("No geographic skill data is available.")
+    else:
+        geo = geography[
+            (geography["publication_month"].dt.date >= start_date)
+            & (geography["publication_month"].dt.date <= end_date)
+            & (geography["skill"].isin(selected_skills))
+        ].copy()
+
+        if geo.empty:
+            st.info("Select at least one skill with geographic data.")
+        else:
+            geo_metric = metric
+            geo_summary = (
+                geo.groupby(
+                    [
+                        "municipality",
+                        "municipality_code",
+                        "region",
+                        "longitude",
+                        "latitude",
+                    ],
+                    as_index=False,
+                )
+                .agg(
+                    mentions=("mentions", "sum"),
+                    ads=("ads", "max"),
+                    share_of_ads=("share_of_ads", "mean"),
+                )
+                .sort_values(geo_metric, ascending=False)
+            )
+
+            map_data = geo_summary.rename(
+                columns={
+                    "latitude": "lat",
+                    "longitude": "lon",
+                }
+            )
+
+            st.map(
+                map_data[["lat", "lon", geo_metric]],
+                latitude="lat",
+                longitude="lon",
+                size=geo_metric,
+            )
+            st.dataframe(
+                geo_summary[
+                    [
+                        "municipality",
+                        "region",
+                        "mentions",
+                        "ads",
+                        "share_of_ads",
+                    ]
+                ].head(top_n),
+                use_container_width=True,
+            )
 
 with tab_table:
     st.dataframe(

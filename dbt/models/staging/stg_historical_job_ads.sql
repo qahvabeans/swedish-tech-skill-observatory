@@ -6,5 +6,15 @@ select
     description_text,
     occupation,
     occupation_group,
-    occupation_field
+    occupation_field,
+    municipality,
+    municipality_code,
+    region,
+    region_code,
+    postcode,
+    city,
+    longitude,
+    latitude,
+    source_archive,
+    source_year
 from {{ source('warehouse', 'historical_job_ads') }}

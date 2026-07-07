@@ -32,3 +32,28 @@ models:
       - name: share_of_ads
         tests:
           - not_null
+
+  - name: mart_skill_geography
+    description: Regex-primary skill demand by month and municipality.
+    columns:
+      - name: publication_month
+        tests:
+          - not_null
+      - name: skill
+        tests:
+          - not_null
+      - name: municipality
+        tests:
+          - not_null
+      - name: municipality_code
+        tests:
+          - not_null
+      - name: region
+        tests:
+          - not_null
+      - name: mentions
+        tests:
+          - not_null
+      - name: ads
+        tests:
+          - not_null
