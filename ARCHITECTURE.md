@@ -1,140 +1,131 @@
 # Architecture
 
-The Swedish Tech Skill Observatory is currently a local-first analytics stack.
-The system ingests Swedish job ads, stores them in DuckDB, extracts skill
-mentions with Python, models dashboard-ready tables with dbt, and exposes the
-results in Streamlit.
+Swedish Tech Skill Observatory is a local-first data engineering project. It
+turns historical Swedish job ad archives into analytical DuckDB tables, dbt
+marts, and a Streamlit dashboard for technology skill demand.
 
-## Components
-
-### Ingestion
-
-Live ad ingestion is handled by dlt in
-`src/skill_observatory/ingestion/pipelines/load_ads.py`. It fetches a small
-sample of ads from the JobTech historical search API and writes them to
-`main.job_ads` in DuckDB.
-
-Historical ingestion is handled by
-`src/skill_observatory/ingestion/pipelines/load_historical_ads.py`. It discovers
-all `*.jsonl.zip` archives in `data/raw`, extracts each archive to `data/temp`,
-loads the JSONL records with DuckDB, and creates a combined
-`historical_job_ads` table. Each loaded row includes:
-
-- job ad identifiers and publication dates
-- monthly publication bucket
-- headline and description text
-- occupation labels
-- AMS `must_have` and `nice_to_have` skill arrays
-- `source_archive` and `source_year`
-
-After each archive is loaded, the ingestion step prints row counts, distinct ad
-counts, and date ranges. The loader supports selected-year batches with
-`--years` and idempotent archive replacement with `--append`.
-
-### Transformations
-
-Skill extraction has two historical sources, but the regex source is the
-primary analytical signal:
-
-- `historical_job_skills`: AMS-provided structured skill labels from historical
-  job ads. This source is kept for reference and comparison, but it is too noisy
-  and broad to drive the main technology trend dashboard.
-- `historical_regex_skills`: project-specific technology terms extracted from
-  headline and description text.
-
-The shared regex taxonomy lives in
-`src/skill_observatory/transformations/skill_extraction.py`. It normalizes skill
-aliases into canonical labels such as `python`, `power_bi`, `snowflake`, and
-`llm`.
-
-`src/skill_observatory/transformations/build_historical_regex_skill_qa.py`
-creates QA tables with matched terms and sample ads for manual review.
-
-### dbt Models
-
-The hybrid modeling layer lives under `dbt/` and targets the same DuckDB
-warehouse via the repository-local `profiles.yml`.
-
-Python remains responsible for ingestion and regex extraction. dbt is
-responsible for downstream modeling, tests, and dashboard marts:
-
-- `stg_historical_job_ads`: cleaned historical ad staging view.
-- `int_all_historical_job_skills`: AMS plus regex lineage/comparison table.
-- `int_regex_skill_qa_summary`: dbt-built QA summary from regex match rows.
-- `monthly_skill_counts`: regex-primary monthly dashboard aggregate.
-- `mart_dashboard_skill_trends`: monthly mentions plus share of ads.
-
-The legacy Python `build_monthly_skill_counts.py` remains as a lightweight
-fallback, but dbt is the preferred modeling path for dashboard-ready tables.
-
-### Dashboard
-
-The dashboard is a Streamlit app under `src/skill_observatory/dashboard`.
-
-- `Home.py` provides the entry page.
-- `pages/HistoricalSkills.py` reads `monthly_skill_counts`, lets the user select
-  a skill, and plots its monthly trend.
-
-### API
-
-The `api` package is currently scaffold only. It is intended as a future FastAPI
-layer between DuckDB and the dashboard or external consumers.
-
-### Orchestration
-
-The Dagster package under `src/skill_observatory/orchestration/dagster` is
-currently scaffold only. The ingestion and transformation scripts already map
-well to future Dagster assets.
-
-## Main Data Flow
+## High-Level Flow
 
 ```text
 data/raw/*.jsonl.zip
         |
         v
-historical_job_ads
+historical_job_ads                         -- Python + DuckDB ingestion
         |
-        +--> historical_job_skills       -- AMS taxonomy skills
-        |           |
-        |           v
-        |   int_all_historical_job_skills -- dbt lineage and source comparison
+        +--> historical_job_skills          -- AMS skills, reference only
         |
-        +--> historical_regex_skills     -- project regex skills
+        +--> historical_regex_skill_matches -- DuckDB-native regex extraction
                     |
-                    +--> int_all_historical_job_skills
+                    +--> historical_regex_skills
                     |
-                    +--> historical_regex_skill_* -- QA summary and samples
+                    +--> historical_regex_skill_qa_summary
                     |
-                    v
-        monthly_skill_counts            -- dbt regex-primary dashboard aggregate
-                    |
-                    v
-        mart_dashboard_skill_trends      -- normalized dashboard mart
+                    +--> historical_regex_skill_samples
                     |
                     v
-        Streamlit dashboard
+dbt models
+        |
+        +--> stg_historical_job_ads
+        +--> int_all_historical_job_skills
+        +--> monthly_skill_counts
+        +--> mart_dashboard_skill_trends
+        +--> mart_skill_geography
+                    |
+                    v
+Streamlit dashboard
 ```
 
-Live ads follow a smaller parallel path:
+## Ingestion
 
-```text
-JobTech historical search API
-        |
-        v
-main.job_ads
-        |
-        v
-job_skill_lists
-        |
-        v
-job_skills
-```
+Historical ingestion lives in
+`src/skill_observatory/ingestion/pipelines/load_historical_ads.py`.
+
+It:
+
+- discovers local `*.jsonl.zip` archives in `data/raw`
+- supports selected years with `--years`
+- supports idempotent archive replacement with `--append`
+- handles schema differences between 2022 and later archives
+- extracts useful job, occupation, skill, and geography fields
+- writes to `historical_job_ads` in DuckDB
+- prints per-archive row counts, distinct ads, and date ranges
+
+The historical table includes:
+
+- job id and publication dates
+- headline and description text
+- occupation labels
+- AMS `must_have` and `nice_to_have` skill arrays
+- municipality, region, postcode, city, longitude, latitude
+- source archive and source year
+
+Live/sample ingestion exists separately through dlt in
+`src/skill_observatory/ingestion/pipelines/load_ads.py`.
+
+## Skill Extraction
+
+The primary analytical signal is regex-based technology extraction.
+
+`src/skill_observatory/transformations/skill_extraction.py` defines the skill
+taxonomy and aliases.
+
+`src/skill_observatory/transformations/build_historical_regex_skills.py` runs
+regex matching inside DuckDB instead of loading all ad text into pandas. It
+creates:
+
+- `historical_regex_skill_matches`: one row per ad and matched skill, including
+  matched surface text and text snippets for QA.
+- `historical_regex_skills`: compact one-row-per-ad-skill table used by dbt.
+
+AMS skills are retained in `historical_job_skills`, but they are treated as a
+secondary comparison/reference source because many AMS classes are not useful
+technology skills.
+
+## Quality Assurance
+
+`src/skill_observatory/transformations/build_historical_regex_skill_qa.py`
+builds QA tables from `historical_regex_skill_matches`:
+
+- `historical_regex_skill_qa_summary`
+- `historical_regex_skill_samples`
+
+These tables are meant for reviewing false positives, alias quality, and missing
+coverage in the regex taxonomy.
+
+## dbt Modeling
+
+The dbt project lives under `dbt/` and uses `profiles.yml` to connect to the
+local DuckDB warehouse.
+
+Current dbt models:
+
+- `stg_historical_job_ads`: staging view for historical ads and geography.
+- `int_all_historical_job_skills`: lineage table combining AMS and regex
+  sources.
+- `monthly_skill_counts`: regex-primary monthly skill mentions.
+- `mart_dashboard_skill_trends`: mentions plus normalized share of ads.
+- `mart_skill_geography`: skill demand by month and municipality.
+
+dbt tests validate source nulls, accepted skill source values, non-empty trend
+tables, share bounds, and geography consistency.
+
+## Dashboard
+
+The dashboard is a Streamlit app under `src/skill_observatory/dashboard`.
+
+`pages/HistoricalSkills.py` reads dbt marts and currently supports:
+
+- skill trend comparison
+- mentions vs share of ads
+- Top N by selected month
+- fastest growing and declining skills
+- geography view by municipality
+- detail table
 
 ## Current Limits
 
-- Historical ingestion is local and can require substantial disk space while
-  archives are extracted.
-- Regex skill coverage should continue to be expanded and reviewed with QA
-  samples.
-- Dashboard filtering and comparisons are still minimal.
-- FastAPI, Dagster, Docker, and MLflow are not yet implemented.
+- The project is local-first and not yet containerized.
+- Dagster files are still scaffolding; orchestration is not implemented.
+- FastAPI files are still scaffolding.
+- Forecasting and MLflow are planned but not implemented.
+- Regex QA still needs manual review and iterative taxonomy refinement.

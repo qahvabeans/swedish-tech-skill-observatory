@@ -1,86 +1,58 @@
 # Roadmap
 
-## Phase 1: Expand Historical Data
+## Completed / Implemented
 
-Status: in progress
+- Local historical ingestion from yearly JobTech JSONL zip archives.
+- Batch loading with `--years` and idempotent archive replacement with
+  `--append`.
+- DuckDB warehouse table for historical job ads.
+- DuckDB-native regex skill extraction.
+- Regex QA summary and sample tables.
+- AMS skill extraction retained as a secondary comparison source.
+- dbt project with staging, intermediate, and dashboard mart models.
+- dbt tests for source validity, share bounds, and mart consistency.
+- Streamlit dashboard with trends, Top N, growth, tables, and geography view.
+- Geography mart by month, skill, municipality, and region.
 
-- Load all historical archives from `data/raw/*.jsonl.zip`.
-- Generalize historical ingestion so new yearly archives are picked up
-  automatically.
-- Verify row counts, date ranges, and distinct ad counts after each archive is
-  loaded.
-- Rebuild historical AMS skills, regex skills, and monthly aggregates after
-  ingestion.
+## Next Priorities
 
-## Phase 2: Improve Skill Extraction
+### 1. Improve Dashboard Polish
 
-Status: in progress
+- Make the dashboard visually cleaner and more portfolio-ready.
+- Add clearer labels, formatting, and explanatory text.
+- Improve map presentation and metric formatting.
+- Add screenshots to the README.
 
-- Expand the regex-based skill taxonomy.
-- Add aliases and normalization, for example `Power BI` and `powerbi` to
-  `power_bi`.
-- Improve Swedish and English term coverage.
-- Add quality assurance for false positives and missing skills.
-- Add review queries for regex source overlap and sample matched job ads.
-- Treat AMS skills as a secondary comparison source, not the primary signal for
-  technology trend analysis.
+### 2. Expand And Review Regex Taxonomy
 
-## Phase 2.5: Data Quality and Contracts
+- Review `historical_regex_skill_samples`.
+- Remove false positives.
+- Add missing aliases for Swedish and English tech terms.
+- Split overly broad skills where useful.
 
-Status: in progress
+### 3. Add Orchestration
 
-- Validate required warehouse tables.
-- Validate required columns and basic types.
-- Check for null `id`, null `publication_month`, and impossible date ranges.
-- Track row counts by source archive and skill source.
-- Produce simple validation reports for each pipeline run.
-- Use dbt models and tests for downstream marts while keeping Python ingestion
-  and regex extraction.
+- Convert ingestion, extraction, and dbt build steps into Dagster assets.
+- Add dependencies, lineage, and materialization metadata.
+- Add scheduled or manual jobs for full rebuild and year-level updates.
 
-## Phase 3: Enhance the Dashboard
+### 4. Improve Reproducibility
 
-Status: planned
+- Add Docker or a documented local setup workflow.
+- Add a small sample dataset for public/demo runs.
+- Add CI checks for ruff and dbt parse/build where sample data allows.
 
-- Add Top N skills by month.
-- Add fastest growing and declining skills.
-- Compare multiple skills in the same chart.
-- Add occupation, date, and skill source filters.
-- Display normalized metrics, such as share of ads, alongside raw mention
-  counts.
+### 5. Forecasting MVP
 
-## Phase 4: Pipeline Orchestration
-
-Status: planned
-
-- Replace manual execution with Dagster assets.
-- Define ingestion, transformation, and aggregation as asset materializations.
-- Add schedules, lineage, and run metadata.
-- Improve logging and pipeline observability.
-
-## Phase 5: Forecasting MVP
-
-Status: planned
-
-- Build a first forecasting pipeline from historical monthly skill counts.
-- Evaluate classical time-series models such as Prophet, ARIMA, and
-  Holt-Winters.
-- Generate short-term forecasts for selected technology skills.
-- Compare forecast accuracy across models.
-
-## Phase 6: ML Operations
-
-Status: planned
-
-- Introduce MLflow for experiment tracking.
-- Track model parameters and evaluation metrics.
-- Version trained forecasting models.
-- Prepare reproducible ML experiments.
+- Use `monthly_skill_counts` or `mart_dashboard_skill_trends` as input.
+- Start with simple classical baselines.
+- Evaluate short-term forecasts for selected technology skills.
+- Track experiments with MLflow after the first baseline works.
 
 ## Future Improvements
 
-- Introduce a FastAPI backend between DuckDB and the dashboard.
-- Dockerize the full stack.
-- Add automated tests for ingestion and transformations.
-- Build data quality checks and validation reports.
-- Consider NLP or LLM-assisted skill extraction once the regex baseline is
-  stable and measurable.
+- Add FastAPI backend for serving dashboard/API consumers.
+- Add richer geographic views and regional comparisons.
+- Add occupation/industry segmentation.
+- Consider NLP or LLM-assisted extraction after the regex baseline is measured.
+- Publish a cleaned portfolio demo with screenshots and architecture diagram.
