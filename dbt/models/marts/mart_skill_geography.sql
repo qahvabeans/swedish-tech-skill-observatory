@@ -21,6 +21,8 @@ ad_locations as (
         latitude
     from {{ ref('stg_historical_job_ads') }}
     where municipality is not null
+      and longitude between 10 and 25
+      and latitude between 55 and 70
 
 ),
 
