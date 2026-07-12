@@ -79,7 +79,7 @@ def growth_table(
     )
 
 
-def format_percent_columns(data: pd.DataFrame) -> pd.io.formats.style.Styler:
+def format_percent_columns(data: pd.DataFrame):
     return data.style.format(
         {
             "share_of_ads": "{:.2%}",
