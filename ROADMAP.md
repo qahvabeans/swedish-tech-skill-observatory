@@ -2,7 +2,7 @@
 
 ## Completed / Implemented
 
-- Local historical ingestion from yearly JobTech JSONL zip archives.
+- Local historical ingestion from yearly Platsbanken-related JSONL archives.
 - Batch loading with `--years` and idempotent archive replacement with
   `--append`.
 - DuckDB warehouse table for historical job ads.

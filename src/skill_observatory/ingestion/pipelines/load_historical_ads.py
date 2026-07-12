@@ -14,7 +14,7 @@ TEMP_DIR = Path("data/temp")
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Load JobTech historical JSONL zip archives into DuckDB.",
+        description="Load historical Swedish job ad JSONL zip archives into DuckDB.",
     )
     parser.add_argument(
         "--years",

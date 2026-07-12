@@ -5,7 +5,7 @@ sources:
     schema: main
     tables:
       - name: historical_job_ads
-        description: Historical JobTech job ads loaded by the Python ingestion step.
+        description: Historical Swedish job ads loaded by the Python ingestion step.
         columns:
           - name: id
             tests:

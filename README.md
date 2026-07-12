@@ -3,10 +3,10 @@
 A local data engineering and analytics project for tracking technology skill
 demand in Swedish job ads.
 
-The project ingests historical JobTech job ad archives, stores them in DuckDB,
-extracts technology skills with a regex taxonomy, models dashboard-ready marts
-with dbt, validates data quality with dbt tests, and exposes the results in a
-Streamlit dashboard.
+The project ingests historical Swedish job ad archives from Platsbanken-related
+open data, stores them in DuckDB, extracts technology skills with a regex
+taxonomy, models dashboard-ready marts with dbt, validates data quality with dbt
+tests, and exposes the results in a Streamlit dashboard.
 
 ## Why This Project Exists
 
@@ -45,7 +45,7 @@ growth, QA, and geographic analysis.
 
 ## Data Layout
 
-- `data/raw/`: local yearly JobTech JSONL zip archives.
+- `data/raw/`: local yearly JSONL zip archives with historical job ads.
 - `data/temp/`: temporary extraction area used during ingestion.
 - `data/warehouse/skill_observatory.duckdb`: local DuckDB warehouse.
 - `data/exports/`: generated CSV exports.
