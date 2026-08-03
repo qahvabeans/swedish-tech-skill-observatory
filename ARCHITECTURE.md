@@ -113,7 +113,8 @@ tables, share bounds, and geography consistency.
 
 The dashboard is a Streamlit app under `src/skill_observatory/dashboard`.
 
-`pages/HistoricalSkills.py` reads dbt marts and currently supports:
+`Home.py` renders the main dashboard and reads dbt marts through
+`skill_dashboard.py`. It currently supports:
 
 - skill trend comparison
 - mentions vs share of ads
@@ -121,6 +122,20 @@ The dashboard is a Streamlit app under `src/skill_observatory/dashboard`.
 - fastest growing and declining skills
 - geography view by municipality
 - detail table
+
+## Fabric Proof Of Concept
+
+The project can be shown in Microsoft Fabric without replacing the local
+implementation. The intended mapping is:
+
+- Bronze: `historical_job_ads`
+- Silver: `historical_regex_skills` and regex QA tables
+- Gold: `monthly_skill_counts`, `mart_dashboard_skill_trends`, and
+  `mart_skill_geography`
+
+`src/skill_observatory/fabric/export_fabric_tables.py` exports these tables as
+Parquet files under `data/fabric_export/` so they can be uploaded into a Fabric
+Lakehouse during a trial.
 
 ## Current Limits
 

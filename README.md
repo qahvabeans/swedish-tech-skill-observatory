@@ -109,7 +109,25 @@ The Streamlit dashboard currently supports:
 - geography view by municipality
 - detail table for inspection
 
+## Microsoft Fabric Trial
+
+The project can also be demonstrated as a Microsoft Fabric proof of concept.
+The local DuckDB/dbt pipeline remains the source of truth, while Fabric can be
+used to show the same data product as a Lakehouse with bronze, silver, and gold
+layers.
+
+Export Fabric-ready Parquet files:
+
+```powershell
+python -m skill_observatory.fabric.export_fabric_tables
+```
+
+See [fabric/README.md](fabric/README.md) for the suggested Fabric workspace
+layout, Lakehouse upload flow, and screenshot checklist.
+
 ## Documentation
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) explains the current system design.
 - [ROADMAP.md](ROADMAP.md) tracks planned improvements.
+- [fabric/README.md](fabric/README.md) describes the Fabric trial proof of
+  concept.

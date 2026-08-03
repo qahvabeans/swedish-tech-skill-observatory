@@ -1,0 +1,72 @@
+{
+  "properties": {
+    "description": "Orchestrates the Fabric proof-of-concept flow for Swedish Tech Skill Observatory. The pipeline mirrors the local Python/DuckDB/dbt project as Bronze ingestion, Silver regex skill extraction, and Gold analytical marts.",
+    "activities": [
+      {
+        "name": "01_bronze_ingest_historical_ads",
+        "type": "TridentNotebook",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "notebookId": "{{FABRIC_BRONZE_NOTEBOOK_ID}}",
+          "workspaceId": "{{FABRIC_WORKSPACE_ID}}",
+          "sessionTag": "skill-observatory-bronze"
+        }
+      },
+      {
+        "name": "02_silver_extract_regex_skills",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "01_bronze_ingest_historical_ads",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "notebookId": "{{FABRIC_SILVER_NOTEBOOK_ID}}",
+          "workspaceId": "{{FABRIC_WORKSPACE_ID}}",
+          "sessionTag": "skill-observatory-silver"
+        }
+      },
+      {
+        "name": "03_gold_build_skill_marts",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "02_silver_extract_regex_skills",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "notebookId": "{{FABRIC_GOLD_NOTEBOOK_ID}}",
+          "workspaceId": "{{FABRIC_WORKSPACE_ID}}",
+          "sessionTag": "skill-observatory-gold"
+        }
+      }
+    ]
+  }
+}
