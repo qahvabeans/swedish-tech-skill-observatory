@@ -1,6 +1,6 @@
 # Fabric Screenshots
 
-Use this folder for screenshots from the Fabric trial.
+This folder is reserved for screenshots from the archived Fabric trial.
 
 Recommended filenames:
 
@@ -19,4 +19,3 @@ Suggested Markdown snippets:
 ![Gold skill trend table preview](fabric/screenshots/gold-table-preview.png)
 ![Skill trend report](fabric/screenshots/report-skill-trends.png)
 ```
-

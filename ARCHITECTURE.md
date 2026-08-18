@@ -123,10 +123,11 @@ The dashboard is a Streamlit app under `src/skill_observatory/dashboard`.
 - geography view by municipality
 - detail table
 
-## Fabric Proof Of Concept
+## Archived Fabric Proof Of Concept
 
-The project can be shown in Microsoft Fabric without replacing the local
-implementation. The intended mapping is:
+The repository retains an experimental Microsoft Fabric implementation from a
+completed trial. It is a portfolio artifact and does not participate in the
+default local pipeline. Its mapping was:
 
 - Bronze: `historical_job_ads`
 - Silver: `historical_regex_skills` and regex QA tables
@@ -135,11 +136,40 @@ implementation. The intended mapping is:
 
 `src/skill_observatory/fabric/export_fabric_tables.py` exports these tables as
 Parquet files under `data/fabric_export/` so they can be uploaded into a Fabric
-Lakehouse during a trial.
+Lakehouse if the experiment is recreated later.
+
+## Next Architecture Increment
+
+The next change separates durable raw storage from analytical compute without
+rewriting the working pipeline:
+
+```text
+Platsbanken archives
+        |
+        v
+Python ingestion
+        |
+        v
+MinIO / Parquet               -- durable object storage
+        |
+        v
+DuckDB                        -- query and compute engine
+        |
+        v
+dbt models and tests
+        |
+        v
+Streamlit dashboard
+```
+
+Migration will be incremental. The current DuckDB-backed ingestion remains in
+place until MinIO output can be compared with the existing pipeline. Dagster
+orchestration follows only after the storage path is stable.
 
 ## Current Limits
 
 - The project is local-first and not yet containerized.
+- Raw historical data currently lives inside DuckDB rather than object storage.
 - Dagster files are still scaffolding; orchestration is not implemented.
 - FastAPI files are still scaffolding.
 - Forecasting and MLflow are planned but not implemented.

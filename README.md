@@ -109,12 +109,12 @@ The Streamlit dashboard currently supports:
 - geography view by municipality
 - detail table for inspection
 
-## Microsoft Fabric Trial
+## Archived Microsoft Fabric Proof Of Concept
 
-The project can also be demonstrated as a Microsoft Fabric proof of concept.
-The local DuckDB/dbt pipeline remains the source of truth, while Fabric can be
-used to show the same data product as a Lakehouse with bronze, silver, and gold
-layers.
+The repository retains a completed Microsoft Fabric proof of concept as a
+portfolio artifact. It maps the local data product to a Lakehouse with bronze,
+silver, and gold layers, but it is not part of the active runtime architecture
+and requires no Azure or Fabric subscription.
 
 Export Fabric-ready Parquet files:
 
@@ -122,12 +122,12 @@ Export Fabric-ready Parquet files:
 python -m skill_observatory.fabric.export_fabric_tables
 ```
 
-See [fabric/README.md](fabric/README.md) for the suggested Fabric workspace
-layout, Lakehouse upload flow, and screenshot checklist.
+See [fabric/README.md](fabric/README.md) for the archived workspace layout,
+notebook templates, pipeline definition, and local export helper.
 
 ## Documentation
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) explains the current system design.
 - [ROADMAP.md](ROADMAP.md) tracks planned improvements.
-- [fabric/README.md](fabric/README.md) describes the Fabric trial proof of
+- [fabric/README.md](fabric/README.md) describes the archived Fabric proof of
   concept.

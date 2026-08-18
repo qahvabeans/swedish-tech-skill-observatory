@@ -1,11 +1,11 @@
-# Fabric Proof Of Concept
+# Archived Fabric Proof Of Concept
 
-This folder documents how the local DuckDB/dbt project can be demonstrated in a
-Microsoft Fabric trial as a Lakehouse-oriented data engineering project.
+This folder preserves a completed Microsoft Fabric trial experiment that mapped
+the local DuckDB/dbt project to a Lakehouse-oriented data engineering project.
 
-The local project remains the source of truth. Fabric is used as a portfolio
-deployment target for showing the same pipeline with a medallion-style layout,
-OneLake storage, Lakehouse tables, notebooks, and Power BI-style reporting.
+The trial and its Azure resources are no longer active. Nothing in the default
+pipeline depends on Fabric. The files remain useful as a portfolio artifact and
+as a reproducible template for a future Fabric environment.
 
 ## Target Fabric Layout
 
@@ -57,9 +57,9 @@ The export casts monthly date columns to `DATE` because the Fabric SQL analytics
 endpoint does not support every Parquet timestamp variant emitted by local
 engines.
 
-## Suggested Trial Workflow
+## Recreating The Experiment
 
-1. Start a Microsoft Fabric trial capacity.
+1. Provision an eligible Microsoft Fabric capacity.
 2. Create a workspace, for example `swedish-skill-observatory-dev`.
 3. Create a Lakehouse named `skill_observatory_lakehouse`.
 4. Upload the exported Parquet folders from `data/fabric_export/`.
