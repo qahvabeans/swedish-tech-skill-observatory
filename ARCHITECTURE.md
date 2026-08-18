@@ -166,9 +166,26 @@ Migration will be incremental. The current DuckDB-backed ingestion remains in
 place until MinIO output can be compared with the existing pipeline. Dagster
 orchestration follows only after the storage path is stable.
 
+### Object Storage Foundation
+
+`docker-compose.yml` runs a pinned MinIO server and a short-lived MinIO Client
+container that creates the `skill-observatory` bucket. Credentials and endpoint
+settings come from `.env`; `.env.example` contains safe local placeholders.
+
+`src/skill_observatory/storage/` provides:
+
+- central, environment-backed S3-compatible settings
+- bucket and object existence checks
+- file upload, download, and removal
+- DuckDB query results written to Parquet without loading the dataset into
+  pandas
+
+This module is tested independently and against the local MinIO service. It is
+not connected to historical ingestion yet.
+
 ## Current Limits
 
-- The project is local-first and not yet containerized.
+- Only the MinIO storage service is containerized.
 - Raw historical data currently lives inside DuckDB rather than object storage.
 - Dagster files are still scaffolding; orchestration is not implemented.
 - FastAPI files are still scaffolding.
