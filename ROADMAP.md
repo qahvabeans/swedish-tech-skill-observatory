@@ -18,22 +18,25 @@
 - Docker Compose service for local MinIO object storage.
 - Automatic creation of the `skill-observatory` bucket.
 - Environment-backed storage configuration and tested Parquet object client.
+- Partitioned historical Bronze exports with per-year quality reports.
+- DuckDB and dbt reads directly from MinIO through S3/httpfs.
+- Exact parity validation between local and MinIO-backed analytical marts.
+- Dagster assets and a tested end-to-end historical refresh job.
 
 ## Next Priorities
 
-### 1. Migrate Bronze Data Incrementally
+### 1. Make Regex Extraction Incremental
 
-- Keep the working DuckDB ingestion while also writing historical ads as
-  partitioned Parquet under `bronze/job_ads/`.
-- Configure DuckDB to query Parquet directly from MinIO.
-- Preserve downstream dbt contracts while changing their upstream relation.
-- Compare row counts and business metrics with the existing DuckDB pipeline.
+- Rebuild only selected source-year or source-archive skill partitions.
+- Keep unchanged regex results during normal historical refreshes.
+- Add bounded DuckDB memory and thread settings for explicit full rebuilds.
+- Regenerate QA only for changed taxonomy or changed partitions.
 
-### 2. Add Orchestration
+### 2. Expand Orchestration
 
-- Convert ingestion, extraction, and dbt build steps into Dagster assets.
-- Add dependencies, lineage, materialization metadata, and data quality checks.
-- Add partitions and backfill support for historical archive periods.
+- Add Dagster partitions and backfill support for historical archive periods.
+- Persist Dagster run metadata instead of using temporary local storage.
+- Add failure handling and clearer resource configuration.
 
 ### 3. Forecasting MVP
 

@@ -162,9 +162,9 @@ dbt models and tests
 Streamlit dashboard
 ```
 
-Migration will be incremental. The current DuckDB-backed ingestion remains in
-place until MinIO output can be compared with the existing pipeline. Dagster
-orchestration follows only after the storage path is stable.
+Migration remains incremental. DuckDB ingestion is retained as a compatibility
+path, while partitioned MinIO Bronze has been verified against it and is the
+default upstream source used by the Dagster-managed dbt build.
 
 ### Object Storage Foundation
 
@@ -181,13 +181,58 @@ settings come from `.env`; `.env.example` contains safe local placeholders.
   pandas
 
 This module is tested independently and against the local MinIO service. It is
-not connected to historical ingestion yet.
+also connected to historical ingestion through the optional `--sync-minio`
+flag.
+
+Historical ads are stored under Hive-style partitions:
+
+```text
+skill-observatory/
+  bronze/job_ads/source_year=2022/part-000.parquet
+  bronze/job_ads/source_year=2023/part-000.parquet
+  bronze/job_ads/source_year=2024/part-000.parquet
+  bronze/job_ads/source_year=2025/part-000.parquet
+  quality/bronze/job_ads/source_year=2022.json
+  ...
+```
+
+Each export validates rows, distinct IDs, date range, and critical nulls after
+downloading the written object. Local and MinIO staging data also have matching
+content hashes, and all analytical marts pass exact parity checks.
+
+The Parquet files live in the Docker-managed `minio_data` volume, not in the
+Git working tree.
+
+## Dagster Orchestration
+
+`src/skill_observatory/orchestration/dagster/` defines this asset graph:
+
+```text
+historical_ads_ingestion
+        |
+        v
+bronze_job_ads
+        |
+        v
+regex_skill_mentions
+        |
+        v
+regex_skill_quality
+        |
+        v
+dbt_gold_marts
+```
+
+The default job refreshes 2025 and reuses existing regex/QA tables. Full regex
+rebuilds require explicit asset configuration because the current extractor
+scans the full historical corpus and has a substantially higher memory cost.
+The included monthly schedule is stopped by default.
 
 ## Current Limits
 
 - Only the MinIO storage service is containerized.
-- Raw historical data currently lives inside DuckDB rather than object storage.
-- Dagster files are still scaffolding; orchestration is not implemented.
+- DuckDB raw storage is retained during the dual-write migration.
+- Regex extraction still rebuilds the full history when explicitly requested.
 - FastAPI files are still scaffolding.
 - Forecasting and MLflow are planned but not implemented.
 - Regex QA still needs manual review and iterative taxonomy refinement.
