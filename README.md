@@ -20,6 +20,7 @@ growth, QA, and geographic analysis.
 - Python for ingestion and regex skill extraction orchestration
 - DuckDB as the local analytical warehouse
 - dbt-duckdb for staging, marts, and data tests
+- MinIO as the local S3-compatible object-storage foundation
 - Streamlit for the dashboard
 - dlt for the small live-ingestion sample
 - ruff for Python linting
@@ -51,6 +52,33 @@ growth, QA, and geographic analysis.
 - `data/exports/`: generated CSV exports.
 
 Raw data and the DuckDB warehouse are intentionally not committed.
+
+## Local Object Storage
+
+MinIO runs locally through Docker Compose. It creates the
+`skill-observatory` bucket automatically and exposes:
+
+- S3 endpoint: `http://localhost:9000`
+- management console: `http://localhost:9001`
+
+Create a local environment file and start it:
+
+```powershell
+Copy-Item .env.example .env
+docker compose up -d
+```
+
+Replace the example password in `.env` before use. The current historical
+ingestion still writes to DuckDB; MinIO is deliberately isolated until the
+bronze Parquet path has been validated against that working pipeline.
+
+Run the storage tests:
+
+```powershell
+python -m pytest tests/storage -m "not integration"
+$env:RUN_MINIO_INTEGRATION_TESTS = "1"
+python -m pytest tests/storage/test_minio_integration.py
+```
 
 ## Run The Pipeline
 
@@ -91,6 +119,7 @@ python -m streamlit run src/skill_observatory/dashboard/Home.py
 ```powershell
 ruff check .
 python -m compileall main.py src api
+python -m pytest tests/storage -m "not integration"
 dbt build --profiles-dir .
 ```
 
@@ -109,7 +138,25 @@ The Streamlit dashboard currently supports:
 - geography view by municipality
 - detail table for inspection
 
+## Archived Microsoft Fabric Proof Of Concept
+
+The repository retains a completed Microsoft Fabric proof of concept as a
+portfolio artifact. It maps the local data product to a Lakehouse with bronze,
+silver, and gold layers, but it is not part of the active runtime architecture
+and requires no Azure or Fabric subscription.
+
+Export Fabric-ready Parquet files:
+
+```powershell
+python -m skill_observatory.fabric.export_fabric_tables
+```
+
+See [fabric/README.md](fabric/README.md) for the archived workspace layout,
+notebook templates, pipeline definition, and local export helper.
+
 ## Documentation
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) explains the current system design.
 - [ROADMAP.md](ROADMAP.md) tracks planned improvements.
+- [fabric/README.md](fabric/README.md) describes the archived Fabric proof of
+  concept.
