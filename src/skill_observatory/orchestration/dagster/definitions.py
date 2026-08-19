@@ -7,19 +7,20 @@ from skill_observatory.orchestration.dagster.assets import (
     regex_skill_mentions,
     regex_skill_quality,
 )
+from skill_observatory.orchestration.dagster.jobs import historical_pipeline_job
+from skill_observatory.orchestration.dagster.schedules import (
+    monthly_historical_pipeline_schedule,
+)
 
 
-historical_pipeline_job = dg.define_asset_job(
-    name="historical_pipeline_job",
-    selection=dg.AssetSelection.assets(
+defs = dg.Definitions(
+    assets=[
         historical_ads_ingestion,
         bronze_job_ads,
         regex_skill_mentions,
         regex_skill_quality,
         dbt_gold_marts,
-    ),
-    description=(
-        "Load selected historical archives, materialize MinIO Bronze Parquet, "
-        "extract regex skills, run QA, and build dbt marts from MinIO."
-    ),
+    ],
+    jobs=[historical_pipeline_job],
+    schedules=[monthly_historical_pipeline_schedule],
 )

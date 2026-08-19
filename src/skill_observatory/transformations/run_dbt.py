@@ -1,17 +1,30 @@
 import argparse
+import os
+import subprocess
+import sys
+from pathlib import Path
 
-from dbt.cli.main import dbtRunner
 from dotenv import load_dotenv
 
 
 def invoke_dbt(command: list[str], target: str = "minio") -> None:
     load_dotenv(override=False)
-    arguments = [*command, "--profiles-dir", ".", "--target", target]
-    result = dbtRunner().invoke(arguments)
-    if not result.success:
-        raise RuntimeError(
-            f"dbt command failed for target={target}: {' '.join(command)}"
+    executable_name = "dbt.exe" if os.name == "nt" else "dbt"
+    dbt_executable = Path(sys.executable).with_name(executable_name)
+    if not dbt_executable.exists():
+        raise FileNotFoundError(
+            f"dbt executable was not found next to Python: {dbt_executable}"
         )
+
+    arguments = [
+        str(dbt_executable),
+        *command,
+        "--profiles-dir",
+        ".",
+        "--target",
+        target,
+    ]
+    subprocess.run(arguments, check=True)
 
 
 def _parse_args() -> argparse.Namespace:
