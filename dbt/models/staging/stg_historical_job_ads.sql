@@ -17,4 +17,8 @@ select
     latitude,
     source_archive,
     source_year
+{% if target.name == 'minio' %}
+from {{ source('object_storage', 'historical_job_ads') }}
+{% else %}
 from {{ source('warehouse', 'historical_job_ads') }}
+{% endif %}

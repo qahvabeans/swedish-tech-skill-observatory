@@ -46,3 +46,16 @@ sources:
 
       - name: historical_regex_skill_matches
         description: Optional regex match-level QA rows built by Python.
+
+  - name: object_storage
+    description: Partitioned Bronze Parquet stored in local MinIO.
+    config:
+      external_location: >-
+        read_parquet(
+          's3://{{ env_var('S3_BUCKET', 'skill-observatory') }}/bronze/job_ads/**/*.parquet',
+          hive_partitioning = true,
+          union_by_name = true
+        )
+    tables:
+      - name: historical_job_ads
+        description: Historical job ads read directly from MinIO Bronze storage.
