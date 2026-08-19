@@ -51,3 +51,19 @@ def create_historical_ads_external_view(
         )
         """
     )
+
+
+def count_historical_ads(
+    connection: duckdb.DuckDBPyConnection,
+    settings: StorageSettings,
+) -> int:
+    configure_minio(connection, settings)
+    return (
+        connection.read_parquet(
+            historical_ads_parquet_glob(settings),
+            hive_partitioning=True,
+            union_by_name=True,
+        )
+        .aggregate("count(*)")
+        .fetchone()[0]
+    )

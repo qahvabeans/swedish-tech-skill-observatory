@@ -6,6 +6,9 @@ from zipfile import ZipFile
 
 import duckdb
 
+from skill_observatory.storage import ObjectStorage, StorageSettings
+from skill_observatory.storage.bronze import HistoricalAdsBronzeExporter
+
 
 DUCKDB_PATH = "data/warehouse/skill_observatory.duckdb"
 RAW_DIR = Path("data/raw")
@@ -29,6 +32,11 @@ def _parse_args() -> argparse.Namespace:
             "Keep the existing historical_job_ads table and replace only the "
             "selected archive rows. Without this flag, the table is rebuilt."
         ),
+    )
+    parser.add_argument(
+        "--sync-minio",
+        action="store_true",
+        help="Export the loaded source-year partitions to MinIO after ingestion.",
     )
 
     return parser.parse_args()
@@ -213,6 +221,7 @@ def _print_archive_validation(
 def run(
     years: list[int] | None = None,
     append: bool = False,
+    sync_minio: bool = False,
 ) -> None:
     archive_paths = _archive_paths(years)
     TEMP_DIR.mkdir(parents=True, exist_ok=True)
@@ -291,10 +300,17 @@ def run(
         )
     )
 
+    if sync_minio:
+        source_years = sorted({_archive_year(path) for path in archive_paths})
+        print("\n=== Syncing loaded source years to MinIO Bronze ===")
+        storage = ObjectStorage(StorageSettings.from_env())
+        HistoricalAdsBronzeExporter(con, storage).export(source_years)
+
 
 if __name__ == "__main__":
     args = _parse_args()
     run(
         years=args.years,
         append=args.append,
+        sync_minio=args.sync_minio,
     )
