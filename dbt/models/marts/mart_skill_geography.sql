@@ -44,8 +44,8 @@ select
     ad_locations.municipality_code,
     ad_locations.region,
     ad_locations.region_code,
-    avg(ad_locations.longitude) as longitude,
-    avg(ad_locations.latitude) as latitude,
+    round(avg(ad_locations.longitude), 6) as longitude,
+    round(avg(ad_locations.latitude), 6) as latitude,
     count(distinct skill_ads.id) as mentions,
     max(monthly_location_ads.ads) as ads,
     count(distinct skill_ads.id)::double

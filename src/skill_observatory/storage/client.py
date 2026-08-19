@@ -1,6 +1,6 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Protocol
+from typing import Iterable, Protocol
 
 import duckdb
 from minio import Minio
@@ -31,6 +31,13 @@ class MinioClient(Protocol):
     ): ...
 
     def remove_object(self, bucket_name: str, object_name: str) -> None: ...
+
+    def list_objects(
+        self,
+        bucket_name: str,
+        prefix: str | None = None,
+        recursive: bool = False,
+    ) -> Iterable: ...
 
 
 class ObjectStorage:
@@ -64,12 +71,17 @@ class ObjectStorage:
             raise
         return True
 
-    def upload_file(self, source: str | Path, object_name: str) -> None:
+    def upload_file(
+        self,
+        source: str | Path,
+        object_name: str,
+        content_type: str = "application/octet-stream",
+    ) -> None:
         self.client.fput_object(
             self.settings.bucket,
             object_name,
             str(source),
-            content_type="application/vnd.apache.parquet",
+            content_type=content_type,
         )
 
     def download_file(self, object_name: str, destination: str | Path) -> Path:
@@ -85,6 +97,22 @@ class ObjectStorage:
     def remove_object(self, object_name: str) -> None:
         self.client.remove_object(self.settings.bucket, object_name)
 
+    def list_objects(self, prefix: str = "") -> list[str]:
+        return [
+            item.object_name
+            for item in self.client.list_objects(
+                self.settings.bucket,
+                prefix=prefix,
+                recursive=True,
+            )
+        ]
+
+    def remove_prefix(self, prefix: str, keep: set[str] | None = None) -> None:
+        retained = keep or set()
+        for object_name in self.list_objects(prefix):
+            if object_name not in retained:
+                self.remove_object(object_name)
+
     def write_query_as_parquet(
         self,
         connection: duckdb.DuckDBPyConnection,
@@ -94,4 +122,8 @@ class ObjectStorage:
         with TemporaryDirectory() as temp_dir:
             parquet_path = Path(temp_dir) / "data.parquet"
             connection.sql(query).write_parquet(str(parquet_path))
-            self.upload_file(parquet_path, object_name)
+            self.upload_file(
+                parquet_path,
+                object_name,
+                content_type="application/vnd.apache.parquet",
+            )

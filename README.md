@@ -69,8 +69,32 @@ docker compose up -d
 ```
 
 Replace the example password in `.env` before use. The current historical
-ingestion still writes to DuckDB; MinIO is deliberately isolated until the
-bronze Parquet path has been validated against that working pipeline.
+ingestion can write to both DuckDB and MinIO, while Dagster uses MinIO Bronze as
+the default upstream source for dbt.
+
+### MinIO Login And Local Account
+
+Open `http://localhost:9001` and sign in with `MINIO_ROOT_USER` and
+`MINIO_ROOT_PASSWORD` from your local `.env`. No account or bucket needs to be
+created in the web interface: the `minio-init` container creates the private
+`skill-observatory` bucket automatically.
+
+For this local project, keep `S3_ACCESS_KEY` equal to `MINIO_ROOT_USER` and
+`S3_SECRET_KEY` equal to `MINIO_ROOT_PASSWORD`. Python, DuckDB, dbt, and Dagster
+then use the same local credentials. `.env` is ignored by Git; only the safe
+template `.env.example` is committed.
+
+Useful commands:
+
+```powershell
+docker compose up -d
+docker compose ps
+docker compose logs minio-init
+docker compose down
+```
+
+`docker compose down` keeps the local data volume. Adding `-v` deletes the
+MinIO volume and all locally stored Parquet files.
 
 Run the storage tests:
 
@@ -80,6 +104,20 @@ $env:RUN_MINIO_INTEGRATION_TESTS = "1"
 python -m pytest tests/storage/test_minio_integration.py
 ```
 
+Export or replace selected Bronze partitions from the existing DuckDB table:
+
+```powershell
+python -m skill_observatory.storage.export_historical_ads --years 2022 2023 2024 2025
+```
+
+Build dbt models directly from MinIO and validate parity against the local
+source:
+
+```powershell
+python -m skill_observatory.transformations.run_dbt
+python -m skill_observatory.transformations.validate_minio_parity
+```
+
 ## Run The Pipeline
 
 Activate the virtual environment, then run historical ingestion. To rebuild all
@@ -87,6 +125,13 @@ available local archives:
 
 ```powershell
 python -m skill_observatory.ingestion.pipelines.load_historical_ads --years 2022 2023 2024 2025
+```
+
+To replace selected archive rows and synchronize their Bronze partitions in
+the same command:
+
+```powershell
+python -m skill_observatory.ingestion.pipelines.load_historical_ads --append --sync-minio --years 2025
 ```
 
 To run year-by-year and replace only selected archive rows after the first
@@ -113,6 +158,37 @@ Run the dashboard:
 ```powershell
 python -m streamlit run src/skill_observatory/dashboard/Home.py
 ```
+
+## Dagster Orchestration
+
+Start the local Dagster UI:
+
+```powershell
+dagster dev -m skill_observatory.orchestration.dagster.definitions
+```
+
+Open `http://localhost:3000` and launch `historical_pipeline_job`. Its default
+configuration refreshes 2025, validates the corresponding Bronze partition,
+reuses existing regex/QA tables, and builds dbt marts from MinIO.
+
+A regex or QA rebuild is intentionally explicit because a full historical
+regex rebuild is CPU- and memory-intensive:
+
+```yaml
+ops:
+  historical_ads_ingestion:
+    config:
+      years: [2025]
+      append: true
+  regex_skill_mentions:
+    config:
+      rebuild: true
+  regex_skill_quality:
+    config:
+      rebuild: true
+```
+
+The monthly schedule is included but stopped by default for local development.
 
 ## Quality Checks
 

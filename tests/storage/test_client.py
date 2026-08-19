@@ -46,6 +46,22 @@ class FakeMinioClient:
     def remove_object(self, bucket_name: str, object_name: str) -> None:
         (self.object_dir / object_name).unlink()
 
+    def list_objects(
+        self,
+        bucket_name: str,
+        prefix: str | None = None,
+        recursive: bool = False,
+    ) -> list[object]:
+        selected_prefix = prefix or ""
+        objects = []
+        if self.object_dir.exists():
+            for path in self.object_dir.rglob("*"):
+                if path.is_file():
+                    object_name = path.relative_to(self.object_dir).as_posix()
+                    if object_name.startswith(selected_prefix):
+                        objects.append(type("Object", (), {"object_name": object_name})())
+        return objects
+
 
 def test_write_and_read_parquet_object(tmp_path: Path) -> None:
     settings = StorageSettings(
